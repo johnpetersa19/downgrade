@@ -549,14 +549,14 @@ DOWNGRADE_FROM_ALA=1
 DOWNGRADE_FROM_CACHE=1
 DOWNGRADE_MAXDEPTH=1
 DOWNGRADE_CONF="/etc/xdg/downgrade/downgrade.conf"
-DOWNGRADE_VERSION="11.4.3"
+DOWNGRADE_VERSION="__VERSION__"
 DOWNGRADE_IGNORE="prompt"
 DOWNGRADE_TO_LATEST=0
 DOWNGRADE_TO_OLDEST=0
 DOWNGRADE_PREFER_CACHE=0
 
 # Main code execution
-if ((!LIB)); then
+if ((!DOWNGRADE_LIB)); then
   set -e
 
   locale="$(dirname "$0")"/../share/locale

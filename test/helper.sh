@@ -1,5 +1,5 @@
 # Prevent actual execution of script
-export LIB=1
+export DOWNGRADE_LIB=1
 
 # Provide access to project root
 export SRCDIR=${TESTDIR/\/test*/}
@@ -8,7 +8,7 @@ export SRCDIR=${TESTDIR/\/test*/}
 export PATH="$SRCDIR/test/bin:$PATH"
 
 # Load implementation
-source "$SRCDIR"/bin/downgrade
+source "$SRCDIR"/src/downgrade
 
 # Set script defaults for test environment
 export PACMAN_CONF=$(mktemp)

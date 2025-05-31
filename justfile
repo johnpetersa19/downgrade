@@ -1,50 +1,51 @@
-# Sources
-scripts := `find bin -type f -executable -printf "%f "`
-manpages := `find doc -type f -name '*.md' -printf "%f "`
-
-# Metadata
-version := 'v' + `./bin/downgrade --version`
-
 # Run tests
 test:
   cram test
 
-# Re-generate translations
-locales:
-  for script_ in {{scripts}}; do \
-    just _locales "$script_"; \
+# Build and package dist
+dist version:
+  just dist-bin "{{version}}"
+  just dist-locale
+  just dist-manpages
+  tar cvfz downgrade-{{version}}.tar.gz \
+    --transform 's/^dist/downgrade-{{version}}/' dist
+
+# Create dist/bin
+dist-bin version:
+  mkdir -p dist/bin
+  m4 -D '__VERSION__={{version}}' < src/downgrade > dist/bin/downgrade
+  chmod +x dist/bin/downgrade
+  cp -v src/pacignore dist/bin/
+
+# Create dist/locale
+dist-locale:
+  for script_ in src/*; do \
+    just dist-locale-one "$(basename "$script_")"; \
   done
 
-_locales exec:
-  xgettext \
-    --from-code=utf-8 -L shell \
-    --package-name={{exec}} \
-    --package-version={{version}} \
-    -o 'locale/{{exec}}.pot' bin/{{exec}}
-  find \
-    'locale/{{exec}}' \
-    -name "*.po" \
-    -exec msgmerge --update {} 'locale/{{exec}}.pot' \;
-  sed -i '\
-    /^# Copyright.*$/d; \
-    s/^\(# This file is\).*$/\1 put in the public domain./\
-    ' \
-    'locale/{{exec}}.pot'
+# Create dist/locale/{{exec}}/*.po
+dist-locale-one exec:
+  just update-locales '{{exec}}'
+  mkdir -p 'dist/locale/{{exec}}'
+  cp -v "locale/{{exec}}"/*.po 'dist/locale/{{exec}}/'
 
-# Re-generate man-pages
-manpages:
-  for manpage_ in {{manpages}}; do \
-    just _manpage "$manpage_"; \
-  done
+# Create dist/doc/ from doc/
+dist-manpages:
+  ronn --roff doc/*.ronn
+  mkdir -p dist/doc
+  find doc \
+    -type f \
+    -not -name '*.ronn' \
+    -not -name 'index.txt' \
+    -exec cp -v {} dist/doc \;
 
-_manpage md:
-  pandoc \
-    --standalone \
-    --to man \
-    --output "doc/$(echo '{{md}}' | sed 's/.md$//')" \
-    'doc/{{md}}'
+# Clean up from building dist
+dist-clean:
+  git clean -fdx dist doc locale
+  rm -fv downgrade-*.tar.gz
 
-release:
-  git tag --sign --message '{{version}}' '{{version}}'
-  git push --follow-tags
-  aur-release downgrade '{{version}}'
+# Update locale/{{exec}}/*.po files
+update-locales exec:
+  xgettext --from-code=utf-8 -L shell -o 'locale/{{exec}}.pot' 'src/{{exec}}'
+  find 'locale/{{exec}}' -name "*.po" -exec \
+    msgmerge --update {} 'locale/{{exec}}.pot' \;
